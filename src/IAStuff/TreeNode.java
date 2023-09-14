@@ -13,6 +13,11 @@ public class TreeNode implements Comparable<TreeNode> {
 	public TreeNode() {
 		super();
 	}
+	
+	public boolean isThisCoordFather(int i, int j) {
+		if(this.father == null) return false;
+		return (this.father.i == i && this.father.j == j);  
+	}
 
 	public TreeNode(TreeNode father) {
 		this.father = father;
@@ -58,10 +63,16 @@ public class TreeNode implements Comparable<TreeNode> {
 			list.add(actualNode);
 			actualNode = actualNode.father;
 		}
-
+		
+		int breakCnt = 0;
 		for (int x = list.size() - 1; x >= 0; x--) {
+			if(breakCnt >= 5) {
+				System.out.print("...\n");
+				breakCnt = 0;
+			}
 			actualNode = list.get(x);
 			System.out.print("->(" + actualNode.getDirectionToThis() + "):[" + actualNode.i + "," + actualNode.j + "]");
+			breakCnt++;
 		}
 		System.out.print("\n");
 	}
@@ -74,11 +85,17 @@ public class TreeNode implements Comparable<TreeNode> {
 			list.add(actualNode);
 			actualNode = actualNode.father;
 		}
-
+		
+		int breakCnt = 0;
 		for (int x = list.size() - 1; x >= 0; x--) {
+			if(breakCnt >= 5) {
+				System.out.print("...\n");
+				breakCnt = 0;
+			}
 			actualNode = list.get(x);
 			System.out.print("->(" + actualNode.getDirectionToThis() + "," + actualNode.cost + "," + actualNode.heuristic + "):["
 					+ actualNode.i + "," + actualNode.j + "]");
+			breakCnt++;
 		}
 		System.out.print("\n");
 	}

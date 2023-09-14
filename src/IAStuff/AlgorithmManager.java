@@ -1,8 +1,11 @@
 package IAStuff;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
+import java.util.PriorityQueue;
 
 import MazeStuff.Maze;
 
@@ -56,14 +59,23 @@ class AStarSearch extends Execution {
 	}
 
 	@Override
-	public IASolution algorithm() throws Exception {
+	public boolean algorithm() {
 		int mazeDim = maze.getDimension();
-		IASolution solution = new IASolution();
 		solution.setAlgorithm("Algoritmo por A*.");
 		Tree searchTree = new Tree();
-		searchTree.root = this.generateStartPoint(maze);
+		try {
+			searchTree.root = this.generateStartPoint(maze);
+		} catch (Exception e) {
+			System.out.println("No puedo generar Start Point.");
+			e.printStackTrace();
+			return false;
+		}
+		if (searchTree.root == null) {
+			System.out.println("Detección de root nula");
+			return false;
+		}
 		searchTree.root.cost = 0;
-		searchTree.root.heuristic = generateHeuristic(searchTree.root.j, mazeDim);
+		searchTree.root.heuristic = generateHeuristic(searchTree.root.i, mazeDim);
 		solution.setSearchTree(searchTree);
 		OptimizedStorageForNodes storage = new OptimizedStorageForNodes();
 		TreeNode actualNode = searchTree.root;
@@ -73,61 +85,70 @@ class AStarSearch extends Execution {
 			if (actualNode.j == 0 || actualNode.j == mazeDim + 1 || actualNode.i == 0 || actualNode.i == mazeDim + 1) {
 				solution.setSolution(actualNode);
 
-				return solution;
+				return true;
 			}
 
-			//Expandimos
-			if (!this.maze.isWall(actualNode.i - 1, actualNode.j)) {
+			// Expandimos
+			if (!this.maze.isWall(actualNode.i - 1, actualNode.j)
+					&& !actualNode.isThisCoordFather(actualNode.i - 1, actualNode.j)) {
 				actualNode.up = new TreeNode(actualNode).setCoords(actualNode.i - 1, actualNode.j, actualNode.cost + 1,
-						generateHeuristic(actualNode.j, mazeDim));
+						generateHeuristic(actualNode.i - 1, mazeDim));
 				storage.add(actualNode.up);
 			}
-			if (!this.maze.isWall(actualNode.i, actualNode.j + 1)) {
+			if (!this.maze.isWall(actualNode.i, actualNode.j + 1)
+					&& !actualNode.isThisCoordFather(actualNode.i, actualNode.j + 1)) {
 				actualNode.right = new TreeNode(actualNode).setCoords(actualNode.i, actualNode.j + 1,
-						actualNode.cost + 1, generateHeuristic(actualNode.j + 1, mazeDim));
+						actualNode.cost + 1, generateHeuristic(actualNode.i, mazeDim));
 				storage.add(actualNode.right);
 			}
-			if (!this.maze.isWall(actualNode.i + 1, actualNode.j)) {
+			if (!this.maze.isWall(actualNode.i + 1, actualNode.j)
+					&& !actualNode.isThisCoordFather(actualNode.i + 1, actualNode.j)) {
 				actualNode.down = new TreeNode(actualNode).setCoords(actualNode.i + 1, actualNode.j,
-						actualNode.cost + 1, generateHeuristic(actualNode.j, mazeDim));
+						actualNode.cost + 1, generateHeuristic(actualNode.i + 1, mazeDim));
 				storage.add(actualNode.down);
 			}
-			if (!this.maze.isWall(actualNode.i, actualNode.j - 1)) {
+			if (!this.maze.isWall(actualNode.i, actualNode.j - 1)
+					&& !actualNode.isThisCoordFather(actualNode.i, actualNode.j - 1)) {
 				actualNode.left = new TreeNode(actualNode).setCoords(actualNode.i, actualNode.j - 1,
-						actualNode.cost + 1, generateHeuristic(actualNode.j - 1, mazeDim));
+						actualNode.cost + 1, generateHeuristic(actualNode.i, mazeDim));
 				storage.add(actualNode.left);
 			}
 
 			actualNode = storage.nextLowest();
 
 		}
-		return solution;
+		return false;
 	}
 
-	private double generateHeuristic(int j, int dim) {
-		// Defino Heurística como cantidad de espacios para salir por el lado izquierdo.
-		// En teoría sería la dimensión sería la coordenada j + 1....
+	private double generateHeuristic(int i, int dim) {
+		// Defino Heurística como cantidad de espacios para salir arriba.
+		// En teoría sería la dimensión, entonces es la coordenada i + 1....
 		// Pero esa heurística no estaría normalizada....
-		// Entonces.... puede ser h = (j+1))/dimensión con eso me encargo de que
+		// Entonces.... puede ser h = (i+1))/dimensión con eso me encargo de que
 		// h <= costo... normalizada.
-		return (double) (j + 1) / (double) dim;
+		return (double) (i) / (double) (dim);
 	}
 }
 
 class OptimizedStorageForNodes {
-	ArrayList<TreeNode> storage = new ArrayList<TreeNode>();
+	PriorityQueue<TreeNode> queue = new PriorityQueue<TreeNode>();
+	// ArrayList<TreeNode> storage = new ArrayList<TreeNode>();
 
 	public TreeNode nextLowest() {
-		if (storage.size() == 0)
-			return null;
-		TreeNode lowestNode = storage.get(0);
-		storage.remove(0);
-		return lowestNode;
+		// if (storage.size() == 0)
+		// return null;
+		// TreeNode lowestNode = storage.get(0);
+		// storage.remove(0);
+		// return lowestNode;
+
+		return queue.poll();
+
 	}
 
 	public void add(TreeNode node) {
-		storage.add(node);
-		Collections.sort(storage);
+		// storage.add(node);
+		// Collections.sort(storage);
+		queue.add(node);
 	}
 
 }
@@ -140,47 +161,68 @@ class WidthSearch extends Execution {
 	}
 
 	@Override
-	public IASolution algorithm() throws Exception {
-		IASolution solution = new IASolution();
-		solution.setAlgorithm("Algoritmo por Anchura.");
-		Tree searchTree = new Tree();
-		searchTree.root = this.generateStartPoint(maze);
-		solution.setSearchTree(searchTree);
-
+	public boolean algorithm() throws Exception {
+		this.solution.setAlgorithm("Algoritmo por Anchura.");
+		this.solution.setSearchTree(new Tree()); 
+		try {
+			this.solution.getSearchTree().root = this.generateStartPoint(maze);
+		} catch (Exception e) {
+			System.out.println("No puedo generar Start Point.");
+			e.printStackTrace();
+			return false;
+		}
+		
+		System.out.println("Coordenada de inicio: (" + this.solution.getSearchTree().root.i + "," + this.solution.getSearchTree().root.j + ")");
+		System.out.println("Coordenada de inicio en pared: " + this.maze.isWall(this.solution.getSearchTree().root.i, this.solution.getSearchTree().root.j));
+			
 		NodesLine nodesLine = new NodesLine();
-		TreeNode actualNode = searchTree.root;
+		TreeNode actualNode = this.solution.getSearchTree().root;
+
+		if(actualNode == null) {
+			System.out.println("No hay nodo de inicio.");
+		}
 
 		while (actualNode != null) {
 
 			// Evaluamos victoria
 			if (actualNode.j == 0 || actualNode.j == this.maze.getDimension() + 1 || actualNode.i == 0
 					|| actualNode.i == this.maze.getDimension() + 1) {
-				solution.setSolution(actualNode);
 
-				return solution;
+				if(actualNode == null) System.out.println("Acá da null");
+				this.solution.setSolution(actualNode);
+				if(this.solution.getSolution() == null) System.out.println("Acá da null 2");
+
+				return true;
 			}
 
-			if (!this.maze.isWall(actualNode.i - 1, actualNode.j)) {
+			if (!this.maze.isWall(actualNode.i - 1, actualNode.j)
+					&& !actualNode.isThisCoordFather(actualNode.i - 1, actualNode.j)) {
 				actualNode.up = new TreeNode(actualNode).setCoords(actualNode.i - 1, actualNode.j);
 				nodesLine.addToLine(actualNode.up);
 			}
-			if (!this.maze.isWall(actualNode.i, actualNode.j + 1)) {
+			if (!this.maze.isWall(actualNode.i, actualNode.j + 1)
+					&& !actualNode.isThisCoordFather(actualNode.i, actualNode.j + 1)) {
 				actualNode.right = new TreeNode(actualNode).setCoords(actualNode.i, actualNode.j + 1);
 				nodesLine.addToLine(actualNode.right);
 			}
-			if (!this.maze.isWall(actualNode.i + 1, actualNode.j)) {
+			if (!this.maze.isWall(actualNode.i + 1, actualNode.j)
+					&& !actualNode.isThisCoordFather(actualNode.i + 1, actualNode.j)) {
 				actualNode.down = new TreeNode(actualNode).setCoords(actualNode.i + 1, actualNode.j);
 				nodesLine.addToLine(actualNode.down);
 			}
-			if (!this.maze.isWall(actualNode.i, actualNode.j - 1)) {
+			if (!this.maze.isWall(actualNode.i, actualNode.j - 1)
+					&& !actualNode.isThisCoordFather(actualNode.i, actualNode.j - 1)) {
 				actualNode.left = new TreeNode(actualNode).setCoords(actualNode.i, actualNode.j - 1);
 				nodesLine.addToLine(actualNode.left);
 			}
 
 			actualNode = nodesLine.next();
 		}
-
-		return solution;
+		
+		if(actualNode == null && this.solution.getSolution() == null) {
+			System.out.println("Ruta Imposible.");
+		}
+		return false;
 	}
 
 }
@@ -189,9 +231,9 @@ abstract class Execution extends Thread {
 	Maze maze;
 	long maxTimeForSolution; // En nanosegundos
 	long startTime;
-	IASolution solution;
+	IASolution solution = new IASolution();
 
-	abstract public IASolution algorithm() throws Exception;
+	abstract public boolean algorithm() throws Exception;
 
 	public Execution(long maxTimeForSolutionSeconds) {
 		this.maxTimeForSolution = maxTimeForSolutionSeconds * 1000000000;
@@ -221,8 +263,10 @@ abstract class Execution extends Thread {
 			return ret.setCoords(startPoint, startPoint - 1);
 		if (!maze.isWall(startPoint - 1, startPoint - 1))
 			return ret.setCoords(startPoint - 1, startPoint - 1);
-
-		throw new Exception("Imposible determinar Inicio en este laberinto.");
+		else {
+			throw new Exception("Imposible determinar Inicio en este laberinto.");	
+		}
+		
 	}
 
 	@SuppressWarnings("deprecation")
@@ -231,16 +275,16 @@ abstract class Execution extends Thread {
 		try {
 			this.startTime = System.nanoTime();
 			TimerMax timer = new TimerMax(this);
-			timer.start();
-			IASolution solution;
-			solution = algorithm();
-			timer.stop();
+			//timer.start();
+			algorithm();
+			//timer.stop();
 			long totalTime = System.nanoTime() - this.startTime;
-			solution.setDuration(totalTime);
-			this.solution = solution;
+			this.solution.setDuration(totalTime);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
+			System.out.println("Test si falla algo.");
 			e.printStackTrace();
+			
 		}
 
 	}
@@ -279,21 +323,27 @@ class TimerMax extends Thread {
 }
 
 class NodesLine {
-	ArrayList<TreeNode> line;
-
-	public NodesLine() {
-		this.line = new ArrayList<TreeNode>();
-	}
+	// ArrayList<TreeNode> line = new ArrayList<TreeNode>();
+	// ArrayDeque<TreeNode> queue = new ArrayDeque<TreeNode>();
+	LinkedList<TreeNode> list = new LinkedList<TreeNode>();
 
 	public TreeNode next() {
-		if (line.size() == 0)
-			return null;
-		TreeNode ret = this.line.get(0);
-		this.line.remove(0);
-		return ret;
+		/*
+		 * if (line.size() == 0) return null;
+		 */
+		// TreeNode ret = this.line.get(0);
+		// this.line.remove(0);
+		// return ret;
+		// return queue.poll();
+		return list.poll();
 	}
 
 	public void addToLine(TreeNode node) {
-		this.line.add(node);
+		// this.line.add(node);
+		boolean test = false;
+		if(node == null) {
+			test = true;
+		}
+		list.add(node);
 	}
 }
