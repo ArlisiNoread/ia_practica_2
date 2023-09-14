@@ -1,7 +1,5 @@
 package IAStuff;
 
-import java.time.Duration;
-
 public class IASolution {
 	private String algorithm;
 	private long duration;

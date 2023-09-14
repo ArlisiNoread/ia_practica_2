@@ -2,24 +2,38 @@ package IAStuff;
 
 import java.util.ArrayList;
 
-public class TreeNode {
+public class TreeNode implements Comparable<TreeNode> {
 	public TreeNode father;
 	public int i;
 	public int j;
 	TreeNode up, right, down, left;
+	public int cost;
+	public double heuristic;
 
 	public TreeNode() {
-		
+		super();
 	}
-	
+
 	public TreeNode(TreeNode father) {
 		this.father = father;
 	}
-	
+
 	public TreeNode setCoords(int i, int j) {
 		this.i = i;
 		this.j = j;
 		return this;
+	}
+
+	public TreeNode setCoords(int i, int j, int cost, double heuristic) {
+		this.i = i;
+		this.j = j;
+		this.cost = cost;
+		this.heuristic = heuristic;
+		return this;
+	}
+
+	public double getCostPlusHeuristic() {
+		return this.heuristic + this.cost;
 	}
 
 	public char getDirectionToThis() {
@@ -50,6 +64,35 @@ public class TreeNode {
 			System.out.print("->(" + actualNode.getDirectionToThis() + "):[" + actualNode.i + "," + actualNode.j + "]");
 		}
 		System.out.print("\n");
+	}
+
+	public void printPathWithCostAndHeuristic() {
+		ArrayList<TreeNode> list = new ArrayList<TreeNode>();
+
+		TreeNode actualNode = this;
+		while (actualNode != null) {
+			list.add(actualNode);
+			actualNode = actualNode.father;
+		}
+
+		for (int x = list.size() - 1; x >= 0; x--) {
+			actualNode = list.get(x);
+			System.out.print("->(" + actualNode.getDirectionToThis() + "," + actualNode.cost + "," + actualNode.heuristic + "):["
+					+ actualNode.i + "," + actualNode.j + "]");
+		}
+		System.out.print("\n");
+	}
+
+	@Override
+	public int compareTo(TreeNode node) {
+		if (this.getCostPlusHeuristic() == node.getCostPlusHeuristic()) {
+			return 0;
+		} else if (this.getCostPlusHeuristic() > node.getCostPlusHeuristic()) {
+			return 1;
+		} else {
+			return -1;
+		}
+
 	}
 
 }
