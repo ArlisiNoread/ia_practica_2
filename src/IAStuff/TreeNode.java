@@ -64,11 +64,14 @@ public class TreeNode implements Comparable<TreeNode> {
 			actualNode = actualNode.father;
 		}
 		
+		System.out.println("Número de acciones: " + list.size());
+		System.out.println("Tipo de acción: (x = raíz)-(u = arriba)-(r = derecha)-(d = abajo)-(l = izquierda)");
+		System.out.println("Interpretación: ->(tipo_acción):[coord_i, coord_j]");
+
 		int breakCnt = 0;
 		for (int x = list.size() - 1; x >= 0; x--) {
 			if(breakCnt >= 5) {
 				System.out.print("...\n");
-				breakCnt = 0;
 			}
 			actualNode = list.get(x);
 			System.out.print("->(" + actualNode.getDirectionToThis() + "):[" + actualNode.i + "," + actualNode.j + "]");
@@ -86,6 +89,10 @@ public class TreeNode implements Comparable<TreeNode> {
 			actualNode = actualNode.father;
 		}
 		
+		System.out.println("Número de acciones: " + list.size());
+		System.out.println("Tipo de acción: (x = raíz)-(u = arriba)-(r = derecha)-(d = abajo)-(l = izquierda)");
+		System.out.println("Interpretación: ->(tipo_acción, costo_acumulado, heurística):[coord_i, coord_j]");
+
 		int breakCnt = 0;
 		for (int x = list.size() - 1; x >= 0; x--) {
 			if(breakCnt >= 5) {
