@@ -10,7 +10,7 @@ public class MazeManager {
 			throw new Exception("Dimensión del laberinto debe ser mayor a 0");
 		if (fillFactor < 0 || fillFactor > 1)
 			throw new Exception("El factor de llenado debe ser mayor o igual a 0 y a lo más 1");
-
+		
 		// Determino el número de obstáculos del factor de llenado
 		int numberOfObstacles = (int) Math.round(fillFactor * Math.pow(dimension, 2));
 
@@ -40,12 +40,8 @@ public class MazeManager {
 			mazeArray[coord.i][coord.j] = true;
 
 		}
-
 		return new Maze(mazeArray, fillFactor);
 	}
-	
-	
-
 }
 
 class Coord {

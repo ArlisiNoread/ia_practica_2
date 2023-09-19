@@ -31,8 +31,8 @@ public class AlgorithmManager {
 		return null;
 	}
 
-	public IASolution solveByAStarSearch(Maze maze, int maxTimeForSolution) {
-		Execution search = new AStarSearch(maxTimeForSolution, maze);
+	public IASolution solveByAStarSearch(Maze maze, int maxTimeForSolution, String heuristic) {
+		Execution search = new AStarSearch(maxTimeForSolution, maze, heuristic);
 		search.start();
 		try {
 			search.join();
@@ -49,7 +49,7 @@ public class AlgorithmManager {
 		}
 		return null;
 	}
-	
+
 	public IASolution solveByDeepSearch(Maze maze, int maxTimeForSolution) {
 		Execution search = new DeepSearch(maxTimeForSolution, maze);
 		search.start();
@@ -90,12 +90,9 @@ class DeepSearch extends Execution {
 			e.printStackTrace();
 			return false;
 		}
-
 		solution.setSearchTree(searchTree);
 		TreeNode actualNode = searchTree.root;
-
 		Stack<TreeNode> stack = new Stack<TreeNode>();
-
 		while (actualNode != null) {
 			// Evaluamos victoria
 			if (actualNode.j == 0 || actualNode.j == mazeDim + 1 || actualNode.i == 0 || actualNode.i == mazeDim + 1) {
@@ -127,9 +124,7 @@ class DeepSearch extends Execution {
 				actualNode.up = new TreeNode(actualNode).setCoords(actualNode.i - 1, actualNode.j);
 				stack.push(actualNode.up);
 			}
-
 			actualNode = stack.pop();
-
 		}
 		return false;
 	}
@@ -137,16 +132,18 @@ class DeepSearch extends Execution {
 }
 
 class AStarSearch extends Execution {
+	String heuristic;
 
-	public AStarSearch(long maxTimeForSolutionSeconds, Maze maze) {
+	public AStarSearch(long maxTimeForSolutionSeconds, Maze maze, String heuristic) {
 		super(maxTimeForSolutionSeconds);
 		this.maze = maze;
+		this.heuristic = heuristic;
 	}
 
 	@Override
 	public boolean algorithm() {
 		int mazeDim = maze.getDimension();
-		solution.setAlgorithm("Algoritmo por A*.");
+		solution.setAlgorithm("Algoritmo por A* - Heurística: " + this.heuristic + ".");
 		Tree searchTree = new Tree();
 		try {
 			searchTree.root = this.generateStartPoint(maze);
@@ -155,13 +152,11 @@ class AStarSearch extends Execution {
 			e.printStackTrace();
 			return false;
 		}
-
 		searchTree.root.cost = 0;
-		searchTree.root.heuristic = generateHeuristic(searchTree.root.i, mazeDim);
+		searchTree.root.heuristic = generateHeuristic(searchTree.root.i, searchTree.root.j, mazeDim);
 		solution.setSearchTree(searchTree);
 		OptimizedStorageForNodes storage = new OptimizedStorageForNodes();
 		TreeNode actualNode = searchTree.root;
-
 		while (actualNode != null) {
 			// Evaluamos victoria
 			if (actualNode.j == 0 || actualNode.j == mazeDim + 1 || actualNode.i == 0 || actualNode.i == mazeDim + 1) {
@@ -169,62 +164,74 @@ class AStarSearch extends Execution {
 
 				return true;
 			}
-
 			// Expandimos
 			if (!this.maze.isWall(actualNode.i - 1, actualNode.j)
 					&& !actualNode.isThisCoordFather(actualNode.i - 1, actualNode.j)) {
 				actualNode.up = new TreeNode(actualNode).setCoords(actualNode.i - 1, actualNode.j, actualNode.cost + 1,
-						generateHeuristic(actualNode.i - 1, mazeDim));
+						generateHeuristic(actualNode.i - 1, actualNode.j, mazeDim));
 				storage.add(actualNode.up);
 			}
 			if (!this.maze.isWall(actualNode.i, actualNode.j + 1)
 					&& !actualNode.isThisCoordFather(actualNode.i, actualNode.j + 1)) {
 				actualNode.right = new TreeNode(actualNode).setCoords(actualNode.i, actualNode.j + 1,
-						actualNode.cost + 1, generateHeuristic(actualNode.i, mazeDim));
+						actualNode.cost + 1, generateHeuristic(actualNode.i, actualNode.j + 1, mazeDim));
 				storage.add(actualNode.right);
 			}
 			if (!this.maze.isWall(actualNode.i + 1, actualNode.j)
 					&& !actualNode.isThisCoordFather(actualNode.i + 1, actualNode.j)) {
 				actualNode.down = new TreeNode(actualNode).setCoords(actualNode.i + 1, actualNode.j,
-						actualNode.cost + 1, generateHeuristic(actualNode.i + 1, mazeDim));
+						actualNode.cost + 1, generateHeuristic(actualNode.i + 1, actualNode.j, mazeDim));
 				storage.add(actualNode.down);
 			}
 			if (!this.maze.isWall(actualNode.i, actualNode.j - 1)
 					&& !actualNode.isThisCoordFather(actualNode.i, actualNode.j - 1)) {
 				actualNode.left = new TreeNode(actualNode).setCoords(actualNode.i, actualNode.j - 1,
-						actualNode.cost + 1, generateHeuristic(actualNode.i, mazeDim));
+						actualNode.cost + 1, generateHeuristic(actualNode.i, actualNode.j - 1, mazeDim));
 				storage.add(actualNode.left);
 			}
 
 			actualNode = storage.nextLowest();
-
 		}
 		return false;
 	}
 
-	private double generateHeuristic(int i, int dim) {
-		// Defino Heurística como cantidad de espacios para salir arriba.
-		// En teoría sería la dimensión, entonces es la coordenada i + 1....
-		// Pero esa heurística no estaría normalizada....
-		// Entonces.... puede ser h = (i+1))/dimensión con eso me encargo de que
-		// h <= costo... normalizada.
-		return (double) (i) / (double) (dim);
+	private double generateHeuristic(int i, int j, int dim) {
+		switch (this.heuristic) {
+		case "manhatanUP": {
+			// Defino Heurística como cantidad de espacios para salir arriba.
+			// En teoría sería la dimensión, entonces es la coordenada i + 1....
+			// Pero esa heurística no estaría normalizada....
+			// Entonces.... puede ser h = (i+1))/dimensión con eso me encargo de que
+			// h <= costo... normalizada.
+			return (double) (i) / (double) (dim);
+		}
+		case "euclidianDistanceUpRight": {
+			// Igual me encargo de que esté normalizada.
+			// En este caso busco la mayor distancia posible para la dimensión NxN
+			// De una esquina en diagonal a la otra.
+			double maxDistancePosible = Math.sqrt(2 * Math.pow(dim + 2, 2));
+			double iCoordFinal = 0;
+			double jCoordFinal = dim + 1;
+			double distance = Math.sqrt(Math.pow(iCoordFinal - i, 2) + Math.pow(jCoordFinal - j, 2));
+			return distance / maxDistancePosible;
+		}
+		default:
+			throw new IllegalArgumentException("Heurística no definida: " + this.heuristic);
+		}
 	}
 }
 
 class OptimizedStorageForNodes {
 	PriorityQueue<TreeNode> queue = new PriorityQueue<TreeNode>();
-	// ArrayList<TreeNode> storage = new ArrayList<TreeNode>();
 
+	// ArrayList<TreeNode> storage = new ArrayList<TreeNode>();
 	public TreeNode nextLowest() {
 		// if (storage.size() == 0)
 		// return null;
 		// TreeNode lowestNode = storage.get(0);
 		// storage.remove(0);
 		// return lowestNode;
-
 		return queue.poll();
-
 	}
 
 	public void add(TreeNode node) {
@@ -232,7 +239,6 @@ class OptimizedStorageForNodes {
 		// Collections.sort(storage);
 		queue.add(node);
 	}
-
 }
 
 class WidthSearch extends Execution {
@@ -253,24 +259,17 @@ class WidthSearch extends Execution {
 			e.printStackTrace();
 			return false;
 		}
-
-		
 		NodesLine nodesLine = new NodesLine();
 		TreeNode actualNode = this.solution.getSearchTree().root;
-
 		while (actualNode != null) {
-
 			// Evaluamos victoria
 			if (actualNode.j == 0 || actualNode.j == this.maze.getDimension() + 1 || actualNode.i == 0
 					|| actualNode.i == this.maze.getDimension() + 1) {
-
 				this.solution.setSolution(actualNode);
 				if (this.solution.getSolution() == null)
 					System.out.println("Acá da null 2");
-
 				return true;
 			}
-
 			if (!this.maze.isWall(actualNode.i - 1, actualNode.j)
 					&& !actualNode.isThisCoordFather(actualNode.i - 1, actualNode.j)) {
 				actualNode.up = new TreeNode(actualNode).setCoords(actualNode.i - 1, actualNode.j);
@@ -291,7 +290,6 @@ class WidthSearch extends Execution {
 				actualNode.left = new TreeNode(actualNode).setCoords(actualNode.i, actualNode.j - 1);
 				nodesLine.addToLine(actualNode.left);
 			}
-
 			actualNode = nodesLine.next();
 		}
 
@@ -416,10 +414,6 @@ class NodesLine {
 
 	public void addToLine(TreeNode node) {
 		// this.line.add(node);
-		boolean test = false;
-		if (node == null) {
-			test = true;
-		}
 		list.add(node);
 	}
 }
