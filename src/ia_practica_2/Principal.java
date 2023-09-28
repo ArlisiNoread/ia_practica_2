@@ -9,7 +9,7 @@ public class Principal {
 
 	public static void main(String[] args) throws Exception {
 
-		Maze maze = new MazeManager().createMaze(32, 0.3);
+		Maze maze = new MazeManager().createMaze(32, 0.4);
 		
 		System.out.println(maze);
 		AlgorithmManager algorithmManager = new AlgorithmManager();
